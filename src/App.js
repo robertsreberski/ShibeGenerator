@@ -1,28 +1,41 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { compose, withState, withHandlers } from "recompose";
+import Form, { Type } from "./Form";
+import Gallery from "./Gallery";
 
-class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
-    );
-  }
-}
+const Url = "http://shibe.online/api";
 
-export default App;
+const TypeEndpoints = {
+  [Type.Shibes]: "shibes",
+  [Type.Birds]: "birds",
+  [Type.Cats]: "cats"
+};
+
+const fetchCors = url => fetch(`https://cors-escape.herokuapp.com/${url}`);
+
+const getFinalType = type =>
+  parseInt(type) === Type.Random ? Math.floor(Math.random() * 3) : type;
+
+const enhance = compose(
+  withState("urls", "setUrls", []),
+  withHandlers({
+    handleLoadUrls: ({ setUrls }) => ({ type, count }, onFinished) => {
+      const endpoint = TypeEndpoints[getFinalType(type)];
+      fetchCors(`${Url}/${endpoint}?count=${count}`)
+        .then(response => response.json())
+        .then(urls => {
+          setUrls(urls);
+          onFinished();
+        });
+    }
+  })
+);
+
+const App = ({ urls, handleLoadUrls }) => (
+  <div>
+    <Form onSubmit={handleLoadUrls} />
+    <Gallery {...{ urls }} />
+  </div>
+);
+
+export default enhance(App);
